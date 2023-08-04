@@ -23,7 +23,7 @@ A minimal concurrent progress bar to get feedback on your running go processes.
     p.passProgress(100, "Operation Complete")
 
     //closing channel
-    pt.closeProgress()
+    p.closeProgress()
 ```
 
 ##### Multiple Processes
