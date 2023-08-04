@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// ColorMap contains set of colors for the
+// progress bar visualization
 var ColorMap = map[string]string{
 	"Reset":  "\033[0m",
 	"Red":    "\033[31m",
@@ -18,65 +20,50 @@ var ColorMap = map[string]string{
 	"White":  "\033[97m",
 }
 
-/*Example
-
-ch := make(chan int)
-
-var p ValidProgress = &ProgressChannel{ch, 0, "", "Process 1"}
-var pt ValidProgress = &ProgressChannel{ch, 0, "", "Process 2"}
-
-go progressBar(25, p, colorMap["Green"], colorMap["Gray"])
-go progressBar(25, pt, colorMap["Purple"], colorMap["Gray"])
-
-p.passProgress(20, "Initializing Containers")
-p.passProgress(50, "Creating Kube Clusters")
-
-pt.passProgress(28, "Initializing Services")
-
-p.passProgress(75, "Deploying Application")
-pt.passProgress(34, "Monitorings Pod Health")
-p.passProgress(100, "Operation Complete")
-
-pt.passProgress(56, "Service #1 Deployed")
-pt.passProgress(82, "Service #2 Deployed")
-pt.passProgress(100, "Operation Complete")
-
-pt.closeProgress()
-*/
-
+// ValidProgress: an interface for
+// validation of progress data comming from external src.
 type ValidProgress interface {
-	closeProgress()
-	getProgress() (int, string, string)
-	passProgress(percent int, status string)
+	CloseProgress()
+	GetProgress() (int, string, string)
+	PassProgress(percent int, status string)
 }
 
+// ProgressChannel: a structure that holds information about
+// respective progress bar
 type ProgressChannel struct {
-	progress        chan int
-	progressPercent int
-	progressStatus  string
-	progressName    string
+	Progress        chan int
+	ProgressPercent int
+	ProgressStatus  string
+	ProgressName    string
 }
 
-func (p *ProgressChannel) getProgress() (int, string, string) {
-	return <-p.progress, p.progressName, p.progressStatus + "               "
+// GetProgress: gets progress, name, status of the process
+func (p *ProgressChannel) GetProgress() (int, string, string) {
+	return <-p.Progress, p.ProgressName, p.ProgressStatus + "               "
 }
-func (p *ProgressChannel) passProgress(percent int, status string) {
+
+// PassProgress: pass pre calculated progress and status of the process
+// to the ProgressChannel
+func (p *ProgressChannel) PassProgress(percent int, status string) {
 	if percent > 100 || percent < 0 {
 		log.Fatalf("Invalid progress: Exceeding bounds")
-	} else if percent < p.progressPercent {
+	} else if percent < p.ProgressPercent {
 		log.Fatalf("Invalid progress: Decreasing Progress")
 	}
-	p.progressPercent = percent
+	p.ProgressPercent = percent
 	if len(status) > 0 {
-		p.progressStatus = status
+		p.ProgressStatus = status
 	}
-	p.progress <- percent
+	p.Progress <- percent
 	time.Sleep(1 * time.Second)
 }
 
-func (p *ProgressChannel) closeProgress() { close(p.progress) }
+// CloseProgress: closes a ProgressChannel explicitly
+func (p *ProgressChannel) CloseProgress() { close(p.Progress) }
 
-func progressBar(
+// ProgressBar: Displays a concurrent progress bar on
+// the cli/terminal
+func ProgressBar(
 	progressLength int,
 	updateLength ValidProgress,
 	fillColor string,
@@ -84,7 +71,7 @@ func progressBar(
 ) {
 	filler, toFill := "█", "░"
 	for {
-		progress1, name, status := updateLength.getProgress()
+		progress1, name, status := updateLength.GetProgress()
 		progress := (progress1 * progressLength) / 100
 		fmt.Print(" \r")
 		for j := 0; j < progress; j++ {
